@@ -1,6 +1,9 @@
-import 'package:chatbot/active_study_chart.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
+
+import 'package:chatbot/mode_variasi_a.dart';
+import 'package:chatbot/mode_variasi_b.dart';
+import 'package:chatbot/mode_variasi_c.dart';
 
 void main() => runApp(const MyApp());
 
@@ -18,77 +21,6 @@ String modeLabel(InteractionMode m) {
       return "Mode Interaksi D";
   }
 }
-
-enum SectionKey { ringkasan, syarat, langkah, estimasi, kontak }
-
-String sectionLabel(SectionKey k) {
-  switch (k) {
-    case SectionKey.ringkasan:
-      return "Ringkasan";
-    case SectionKey.syarat:
-      return "Syarat";
-    case SectionKey.langkah:
-      return "Langkah";
-    case SectionKey.estimasi:
-      return "Estimasi";
-    case SectionKey.kontak:
-      return "Kontak";
-  }
-}
-
-class ProcedureContent {
-  final String id;
-  final String title;
-  final String summary;
-  final List<String> steps;
-  final List<String> requirements;
-  final String estimate;
-  final String contact;
-
-  const ProcedureContent({
-    required this.id,
-    required this.title,
-    required this.summary,
-    required this.steps,
-    required this.requirements,
-    required this.estimate,
-    required this.contact,
-  });
-}
-
-/// Contoh konten (nanti kamu ganti sesuai website/prosedur yang kamu pakai)
-const procedures = <ProcedureContent>[
-  ProcedureContent(
-    id: "aktif_kuliah",
-    title: "Aktif Kuliah",
-    summary:
-        "Panduan singkat untuk mengurus status aktif kuliah sesuai ketentuan layanan.",
-    steps: [
-      "Siapkan NIM dan identitas mahasiswa.",
-      "Cek ketentuan dan periode layanan yang berlaku.",
-      "Ajukan permohonan melalui kanal layanan yang ditentukan.",
-      "Tunggu verifikasi dan konfirmasi dari petugas.",
-    ],
-    requirements: ["NIM", "Kartu identitas", "Data pendukung (jika diminta)"],
-    estimate: "Estimasi proses: 1–3 hari kerja (tergantung antrean).",
-    contact: "Kontak layanan: Admin Pelayanan (jam kerja).",
-  ),
-  ProcedureContent(
-    id: "peminjaman_ruang",
-    title: "Peminjaman Ruang",
-    summary: "Panduan peminjaman ruang untuk kegiatan akademik/kemahasiswaan.",
-    steps: [
-      "Tentukan tanggal & jam penggunaan ruang.",
-      "Ajukan permohonan sesuai prosedur peminjaman ruang.",
-      "Petugas mengecek ketersediaan ruang.",
-      "Dapatkan konfirmasi (disetujui/ditolak) beserta catatan.",
-    ],
-    requirements: ["Nama kegiatan", "Penanggung jawab", "Waktu & durasi"],
-    estimate:
-        "Estimasi proses: 1 hari kerja (bisa lebih cepat jika slot tersedia).",
-    contact: "Kontak: Pelayanan Umum / Unit terkait peminjaman ruang.",
-  ),
-];
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -205,13 +137,38 @@ class HomeScreen extends StatelessWidget {
       height: 55,
       child: ElevatedButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const ActiveStudyChatScreen(variant: InteractionVariant.B),
-            ),
-          );
+          // Routing sesuai mode
+          switch (mode) {
+            case InteractionMode.a:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ModeVariasiA()),
+              );
+              break;
+
+            case InteractionMode.b:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ModeVariasiB()),
+              );
+              break;
+
+            case InteractionMode.c:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ModeVariasiC()),
+              );
+              break;
+
+            case InteractionMode.d:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const _ComingSoonScreen(title: "Mode Variasi D"),
+                ),
+              );
+              break;
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
@@ -230,271 +187,44 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class ChatScreen extends StatefulWidget {
-  final InteractionMode mode;
-  const ChatScreen({super.key, required this.mode});
-
-  @override
-  State<ChatScreen> createState() => _ChatScreenState();
-}
-
-class _ChatScreenState extends State<ChatScreen> {
-  ProcedureContent? selected;
-  SectionKey currentSection = SectionKey.ringkasan;
-  bool showDetail = false;
-  int stepIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  void selectProcedure(ProcedureContent p) {
-    setState(() {
-      selected = p;
-      currentSection = SectionKey.ringkasan;
-      showDetail = false;
-      stepIndex = 0;
-    });
-  }
-
-  void nextStep() {
-    if (selected == null) return;
-    setState(() {
-      stepIndex = (stepIndex + 1).clamp(0, selected!.steps.length);
-    });
-  }
-
-  void prevStep() {
-    if (selected == null) return;
-    setState(() {
-      stepIndex = (stepIndex - 1).clamp(0, selected!.steps.length);
-    });
-  }
-
-  void toggleDetail() {
-    setState(() => showDetail = !showDetail);
-    if (widget.mode == InteractionMode.c && showDetail && selected != null) {
-      _openBottomSheetDetail();
-    }
-  }
-
-  void setSection(SectionKey k) {
-    setState(() {
-      currentSection = k;
-      showDetail = false;
-      stepIndex = 0;
-    });
-  }
-
-  void _openBottomSheetDetail() {
-    final p = selected;
-    if (p == null) return;
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Text(_detailText(p, currentSection)),
-          ),
-        );
-      },
-    ).whenComplete(() {
-      // setelah ditutup, set showDetail balik false biar “disclosure” konsisten
-      if (mounted) setState(() => showDetail = false);
-    });
-  }
-
-  String _summaryText(ProcedureContent p, SectionKey sec) {
-    switch (sec) {
-      case SectionKey.ringkasan:
-        return p.summary;
-      case SectionKey.syarat:
-        return "Syarat utama (ringkas): ${p.requirements.take(2).join(", ")}";
-      case SectionKey.langkah:
-        return "Langkah (ringkas): tekan 'Lanjut' untuk melihat langkah berikutnya.";
-      case SectionKey.estimasi:
-        return "Estimasi (ringkas): ${p.estimate}";
-      case SectionKey.kontak:
-        return "Kontak (ringkas): ${p.contact}";
-    }
-  }
-
-  String _detailText(ProcedureContent p, SectionKey sec) {
-    switch (sec) {
-      case SectionKey.ringkasan:
-        return "Ringkasan lengkap:\n\n${p.summary}";
-      case SectionKey.syarat:
-        return "Syarat lengkap:\n\n- ${p.requirements.join("\n- ")}";
-      case SectionKey.langkah:
-        return "Langkah lengkap:\n\n1) ${p.steps.join("\n2) ").replaceFirst("2)", "2)")}";
-      case SectionKey.estimasi:
-        return "Estimasi:\n\n${p.estimate}";
-      case SectionKey.kontak:
-        return "Kontak:\n\n${p.contact}";
-    }
-  }
-
-  Widget _botBubble(String text) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.blueGrey.shade50,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Text(text),
-      ),
-    );
-  }
+/// placeholder untuk C & D biar app aman
+class _ComingSoonScreen extends StatelessWidget {
+  final String title;
+  const _ComingSoonScreen({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    final darkBlue = const Color(0xFF1B2C4B);
-
+    const darkBlue = Color(0xFF1B2C4B);
     return Scaffold(
       appBar: AppBar(
-        title: Text(modeLabel(widget.mode)),
+        title: Text(title),
         backgroundColor: darkBlue,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: selected == null ? _buildPickProcedure() : _buildProcedureFlow(),
-      ),
-    );
-  }
-
-  Widget _buildPickProcedure() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _botBubble("Halo! Pilih topik layanan yang ingin kamu baca:"),
-        const SizedBox(height: 10),
-        ...procedures.map(
-          (p) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: ElevatedButton(
-              onPressed: () => selectProcedure(p),
-              child: Text(p.title),
-            ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.construction, size: 56),
+              const SizedBox(height: 14),
+              const Text(
+                "Mode ini belum dibuat.",
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              const Text("Nanti kita lanjut bikin Mode C & D ya."),
+              const SizedBox(height: 18),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Kembali"),
+              )
+          
+          
+            ],
           ),
         ),
-        const Spacer(),
-        Text(
-          "Mode ini akan menguji progressive disclosure (A–D).",
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProcedureFlow() {
-    final p = selected!;
-    final summary = _summaryText(p, currentSection);
-
-    // Mode A: fokus step-by-step (langkah tampil progresif)
-    final isModeA = widget.mode == InteractionMode.a;
-    // Mode B: section-first (user pilih section dulu)
-    final isModeB = widget.mode == InteractionMode.b;
-    // Mode D: inline expand/collapse
-    final isModeD = widget.mode == InteractionMode.d;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _botBubble("Topik: ${p.title}"),
-        if (isModeB) _sectionChips(),
-        _botBubble(summary),
-
-        if (currentSection == SectionKey.langkah)
-          _botBubble(_currentStepText(p)),
-
-        if (isModeD && showDetail) _botBubble(_detailText(p, currentSection)),
-
-        const Spacer(),
-
-        _actionBar(p, isModeA: isModeA),
-      ],
-    );
-  }
-
-  Widget _sectionChips() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: SectionKey.values.map((k) {
-          final selected = k == currentSection;
-          return ChoiceChip(
-            label: Text(sectionLabel(k)),
-            selected: selected,
-            onSelected: (_) => setSection(k),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  String _currentStepText(ProcedureContent p) {
-    if (p.steps.isEmpty) return "Tidak ada langkah yang tersedia.";
-    final idx = stepIndex.clamp(0, p.steps.length - 1);
-    return "Langkah ${idx + 1}/${p.steps.length}:\n${p.steps[idx]}";
-  }
-
-  Widget _actionBar(ProcedureContent p, {required bool isModeA}) {
-    final isLangkah = currentSection == SectionKey.langkah;
-
-    return SafeArea(
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          // A: langsung fokus “Langkah”
-          if (isModeA) _btn("Langkah", () => setSection(SectionKey.langkah)),
-
-          if (!isModeA)
-            _btn("Ringkasan", () => setSection(SectionKey.ringkasan)),
-
-          if (!isModeA) _btn("Syarat", () => setSection(SectionKey.syarat)),
-
-          if (!isModeA) _btn("Langkah", () => setSection(SectionKey.langkah)),
-
-          if (!isModeA) _btn("Estimasi", () => setSection(SectionKey.estimasi)),
-
-          _btn(
-            widget.mode == InteractionMode.c
-                ? "Lihat detail"
-                : (showDetail ? "Tutup detail" : "Lihat detail"),
-            toggleDetail,
-          ),
-
-          if (isLangkah) _btn("Back", prevStep),
-          if (isLangkah) _btn("Lanjut", nextStep),
-
-          _btn("Ganti Topik", () => setState(() => selected = null)),
-          _btn("Selesai", () => Navigator.pop(context)),
-        ],
-      ),
-    );
-  }
-
-  Widget _btn(String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
     );
   }
